@@ -8,6 +8,54 @@ import urllib3
 import json
 import base64
 
+import requests
+
+class ClovaSR:
+    def __init__(self):
+        self.client_id = ""
+        self.client_secret = ""
+        self.lang = "Kor"  # 언어 코드 ( Kor, Jpn, Eng, Chn )
+        self.url = "https://naveropenapi.apigw.ntruss.com/recog/v1/stt?lang=" + self.lang
+
+        self.headers = {
+            "X-NCP-APIGW-API-KEY-ID": self.client_id,
+            "X-NCP-APIGW-API-KEY": self.client_secret,
+            "Content-Type": "application/octet-stream"
+        }
+
+        self.target_fs = 16000
+        self.tmp_path = '../db/tmp.wav'
+
+    def read_audio(self, filepath):
+        (audio, fs) = sf.read(filepath)
+        if audio.ndim > 1:
+            audio = np.mean(audio, axis=1)
+
+        if fs != self.target_fs:
+            audio = librosa.resample(audio, orig_sr=fs, target_sr=self.target_fs)
+            fs = self.target_fs
+
+        sf.write(self.tmp_path, audio, samplerate=fs, subtype='PCM_16')
+        audio = open(self.tmp_path, 'rb')
+
+        return audio
+
+    def transcript_audio(self, audio):
+        response = requests.post(self.url, data=audio, headers=self.headers)
+
+        if response.status_code != 200:
+            print("Error : " + response.text)
+
+        return self.crop_only_characters(response.text)
+
+    def crop_only_characters(self, data):
+        a = data.find('{"text":"')
+        b = data.find('"}')
+
+        return data[a+9:b-0]
+
+
+
 class GoogleWebSR:
     def __init__(self):
         self.languageCode = 'ko-KR'
@@ -45,7 +93,7 @@ class GoogleWebSR:
 class EtriSR:
     def __init__(self):
         self.openApiURL = 'http://aiopen.etri.re.kr:8000/WiseASR/Recognition'
-        self.accessKey = '8a72eaa1-f00d-4339-b2d0-9a05004b383a'
+        self.accessKey = ''
         self.languageCode = 'korean'
         self.target_fs = 16000
         self.tmp_path = '../db/tmp.wav'
@@ -108,17 +156,23 @@ class EtriSR:
         return data
 
 if __name__ == "__main__":
-    filepath = '../db/test/sample1_short1.wav'
+    filepath = '../db/test/sample1_short2.wav'
 
     etri = EtriSR()
     audio = etri.read_audio(filepath)
     txt = etri.transcript_audio(audio)
-    print(txt)
+    print('etri:', txt)
 
     gw = GoogleWebSR()
     audio = gw.read_audio(filepath)
     txt = gw.transcript_audio(audio)
-    print(txt)
+    print('google web:', txt)
+
+    csr = ClovaSR()
+    audio = csr.read_audio(filepath)
+    txt = csr.transcript_audio(audio)
+    print('clova:', txt)
+
 
 
 
