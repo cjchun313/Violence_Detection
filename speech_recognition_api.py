@@ -10,6 +10,12 @@ import base64
 
 import requests
 
+import io
+from google.cloud import speech_v1p1beta1
+from google.cloud.speech_v1p1beta1 import enums
+from google.cloud.speech_v1p1beta1 import types
+
+
 class ClovaSR:
     def __init__(self):
         self.client_id = ""
@@ -90,6 +96,47 @@ class GoogleWebSR:
         return ASR_result_text
 
 
+class GoogleCloudSR:
+    def __init__(self, diarization=False):
+        self.language_code = 'ko-KR'
+        self.target_fs = 16000
+        self.client = speech_v1p1beta1.SpeechClient()
+
+        self.encoding = enums.RecognitionConfig.AudioEncoding.LINEAR16
+        if diarization == True:
+            self.config = {
+                "language_code": self.language_code,
+                "sample_rate_hertz": self.target_fs,
+                "encoding": self.encoding,
+                "enable_word_time_offsets": True,
+                "enable_speaker_diarization": True,
+                "diarization_speaker_count": 3,
+                "model": 'command_and_search',
+            }
+        else:
+            self.config = {
+                "language_code": self.language_code,
+                "sample_rate_hertz": self.target_fs,
+                "encoding": self.encoding,
+                "enable_word_time_offsets": True,
+                "model": 'command_and_search',
+            }
+
+    def read_audio(self, filepath):
+        with io.open(filepath, "rb") as f:
+            content = f.read()
+            audio = types.RecognitionAudio(content=content)
+        #audio = {"content": content}
+
+        return audio
+
+    def transcript_audio(self, audio):
+        response = self.client.recognize(self.config, audio)
+        #response = self.client.long_running_recognize(self.config, audio)
+
+        return response
+
+
 class EtriSR:
     def __init__(self):
         self.openApiURL = 'http://aiopen.etri.re.kr:8000/WiseASR/Recognition'
@@ -156,7 +203,7 @@ class EtriSR:
         return data
 
 if __name__ == "__main__":
-    filepath = '../db/test/sample1_short2.wav'
+    filepath = '../db/test/file001_e.wav'
 
     etri = EtriSR()
     audio = etri.read_audio(filepath)
@@ -173,7 +220,23 @@ if __name__ == "__main__":
     txt = csr.transcript_audio(audio)
     print('clova:', txt)
 
+    gc = GoogleCloudSR()
+    audio = gc.read_audio(filepath)
+    response = gc.transcript_audio(audio)
 
+    for result in response.results:
+        # First alternative is the most probable result
+        alternative = result.alternatives[0]
+        print(u"Transcript: {}".format(alternative.transcript))
+
+        '''
+        # Print the start and end time of each word
+        for word in alternative.words:
+            print(u"Word: {}, Speaker tag: {}".format(word.word, word.speaker_tag))
+            #print(u"Start time: {} seconds {} nanos".format(word.start_time.seconds, word.start_time.nanos))
+            #print(u"End time: {} seconds {} nanos".format(word.end_time.seconds, word.end_time.nanos))
+            print(u"Start time: {}, End time {}".format(word.start_time.seconds, word.end_time.seconds))
+        '''
 
 
 
