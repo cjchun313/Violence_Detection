@@ -203,8 +203,9 @@ class EtriSR:
         return data
 
 if __name__ == "__main__":
-    filepath = '../db/test/file001_e.wav'
+    filepath = '../db/test/t3_audio_00005.wav'
 
+    '''
     etri = EtriSR()
     audio = etri.read_audio(filepath)
     txt = etri.transcript_audio(audio)
@@ -219,6 +220,7 @@ if __name__ == "__main__":
     audio = csr.read_audio(filepath)
     txt = csr.transcript_audio(audio)
     print('clova:', txt)
+    '''
 
     gc = GoogleCloudSR()
     audio = gc.read_audio(filepath)
@@ -229,14 +231,22 @@ if __name__ == "__main__":
         alternative = result.alternatives[0]
         print(u"Transcript: {}".format(alternative.transcript))
 
-        '''
         # Print the start and end time of each word
-        for word in alternative.words:
-            print(u"Word: {}, Speaker tag: {}".format(word.word, word.speaker_tag))
+        for i, word in enumerate(alternative.words):
+            if i == 0:
+                print(u"Start time: {} seconds {} nanos".format(word.start_time.seconds, word.start_time.nanos))
+
+            if i == (len(alternative.words)-1):
+                print(u"End time: {} seconds {} nanos".format(word.end_time.seconds, word.end_time.nanos))
+
+            #print(u"Word: {}, Speaker tag: {}".format(word.word, word.speaker_tag))
+            #print(u"Start time: {}, End time {}".format(word.start_time.seconds, word.end_time.seconds))
+
             #print(u"Start time: {} seconds {} nanos".format(word.start_time.seconds, word.start_time.nanos))
             #print(u"End time: {} seconds {} nanos".format(word.end_time.seconds, word.end_time.nanos))
-            print(u"Start time: {}, End time {}".format(word.start_time.seconds, word.end_time.seconds))
-        '''
+
+    print('done!')
+
 
 
 
