@@ -23,7 +23,7 @@ class GoogleCloudNLP:
         return sentiment
 
 if __name__ == "__main__":
-    filepath = '../db/test/file001_e.wav'
+    filepath = '../db/test/file003_e.wav'
 
     gc = GoogleCloudSR()
     audio = gc.read_audio(filepath)
